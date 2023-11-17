@@ -109,6 +109,7 @@ for result_filename in p['result_filenames']:
 
     # Volume under recall surface (VSD) / area under recall curve (MSSD, MSPD).
     average_recalls = {}
+    average_recalls_per_object = {}
 
     # Name of the result and the dataset.
     result_name = os.path.splitext(os.path.basename(result_filename))[0]
@@ -191,6 +192,7 @@ for result_filename in p['result_filenames']:
         # Recall scores for all settings of the threshold of correctness (and also
         # of the misalignment tolerance tau in the case of VSD).
         recalls = []
+        recalls_per_obj = {}
 
         # Calculate performance scores.
         for error_sign, error_dir_path in error_dir_paths.items():
@@ -228,8 +230,20 @@ for result_filename in p['result_filenames']:
                     'Loading calculated scores from: {}'.format(scores_path))
                 scores = inout.load_json(scores_path)
                 recalls.append(scores['recall'])
+                if (len(recalls_per_obj) == 0):
+                    recalls_per_obj = {
+                        k: [v] for k, v in scores['obj_recalls'].items()
+                    }
+                else:
+                    for curr_obj, curr_obj_recall in scores[
+                            'obj_recalls'].items():
+                        recalls_per_obj[curr_obj].append(curr_obj_recall)
 
         average_recalls[error['type']] = np.mean(recalls)
+        average_recalls_per_object[error['type']] = {
+            curr_obj: np.mean(curr_obj_recalls)
+            for curr_obj, curr_obj_recalls in recalls_per_obj.items()
+        }
 
         misc.log('Recall scores: {}'.format(' '.join(map(str, recalls))))
         misc.log('Average recall: {}'.format(average_recalls[error['type']]))
@@ -242,11 +256,25 @@ for result_filename in p['result_filenames']:
     for error in p['errors']:
         final_scores['bop19_average_recall_{}'.format(error['type'])] =\
           average_recalls[error['type']]
+        final_scores['bop19_average_recall_{}_per_object'.format(
+            error['type'])] = average_recalls_per_object[error['type']]
 
     # Final score for the given dataset.
     final_scores['bop19_average_recall'] = np.mean([
         average_recalls['vsd'], average_recalls['mssd'], average_recalls['mspd']
     ])
+    final_scores['bop19_average_recall_per_object'] = {
+        int(curr_obj):
+            np.mean([
+                average_recalls_per_object['vsd'][curr_obj],
+                average_recalls_per_object['mssd'][curr_obj],
+                average_recalls_per_object['mspd'][curr_obj]
+            ]) for curr_obj in average_recalls_per_object['vsd'].keys()
+    }
+    final_scores['bop19_average_recall_sorted_per_object'] = "".join(
+        f"{ar_curr_obj:.3f}; " for ar_curr_obj in
+        dict(sorted(
+            final_scores['bop19_average_recall_per_object'].items())).values())
 
     # Average estimation time per image.
     final_scores['bop19_average_time_per_image'] = average_time_per_image
