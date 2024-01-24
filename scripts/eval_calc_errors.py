@@ -150,7 +150,7 @@ for result_filename in p['result_filenames']:
 
     # Parse info about the method and the dataset from the filename.
     result_name = os.path.splitext(os.path.basename(result_filename))[0]
-    result_info = result_name.split('_')
+    result_info = result_name.split('_', maxsplit=1)
     method = str(result_info[0])
     dataset_info = result_info[1].split('-')
     dataset = str(dataset_info[0])
