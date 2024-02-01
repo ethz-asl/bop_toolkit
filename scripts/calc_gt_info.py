@@ -7,7 +7,7 @@ See docs/bop_datasets_format.md for documentation of the calculated info.
 The info is saved in folder "{train,val,test}_gt_info" in the main folder of the
 selected dataset.
 """
-
+import argparse
 import os
 import numpy as np
 
@@ -56,6 +56,17 @@ p = {
                      '{scene_id:06d}', '{im_id:06d}_{gt_id:06d}.jpg'),
 }
 ################################################################################
+
+parser = argparse.ArgumentParser()
+for argument in p:
+    parser.add_argument(f'--{argument}')
+
+args = parser.parse_args()
+for argument_and_value in args._get_kwargs():
+    argument, value = argument_and_value
+    if (value is not None):
+        assert (argument in p)
+        p[argument] = value
 
 if p['vis_visibility_masks']:
     from bop_toolkit_lib import visualization
